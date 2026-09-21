@@ -1,3 +1,5 @@
 .agents
 _bmad
 context
+node_modules
+.dev.vars

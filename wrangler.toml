@@ -1,0 +1,20 @@
+name = "public-share-html-relay"
+main = "src/index.ts"
+compatibility_date = "2026-09-21"
+workers_dev = true
+
+[vars]
+ALLOWED_ORIGIN = "https://felixmortas.com"
+TURNSTILE_EXPECTED_HOSTNAME = "felixmortas.com"
+
+[env.development.vars]
+ALLOWED_ORIGIN = "http://localhost:5173"
+TURNSTILE_EXPECTED_HOSTNAME = "localhost"
+
+[[durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RateLimiter"]

@@ -1,0 +1,19 @@
+{
+  "name": "public-share-html-relay",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "deploy:dry-run": "wrangler deploy --dry-run",
+    "test:deployed": "node test/deployed.mjs"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260921.1",
+    "@cloudflare/vitest-pool-workers": "0.8.71",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7",
+    "wrangler": "4.136.0"
+  }
+}
