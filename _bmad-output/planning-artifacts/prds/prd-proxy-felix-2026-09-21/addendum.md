@@ -1,29 +1,16 @@
-# Technical Addendum — Cloudflare Worker Import Proxy
+# Technical Addendum — MVP Relay
 
-This addendum records implementation-oriented context; the PRD remains the product contract.
+## One endpoint, one algorithm
 
-## Proposed boundary
+The Worker exposes one Calculator-only endpoint. It validates Origin and the Turnstile token, canonicalizes the supplied share URL against its local versioned policy, then fetches with `redirect: "manual"`.
 
-The Worker should expose a single GET-only import route with an approved-Origin CORS policy. Approved origins are configured per Cloudflare environment: `http://localhost:5173` for development and `https://felixmortas.com` for production. At consent time, the browser obtains an ephemeral Turnstile token; the Worker verifies it server-side before any upstream fetch. Turnstile, origin allowlisting, and rate limiting are the chosen abuse protections, not a reusable browser secret.
+For every redirect response, it resolves `Location` relative to the current URL, canonicalizes it, and checks the selected provider policy before fetching again. ChatGPT, Claude, and Mistral allow no redirect. Gemini allows one exact destination shape: `https://gemini.google.com/share/<id>?skid=<uuid>`. No body is exposed until the final response passes.
 
-The browser submits the complete policy derived from the locally verified Resolved Share. The Worker must recompute the expected host and URL shape from `providerId` and reject mismatches; it must not trust free-form client policy, redirect rules, method, headers, or `fetch` options.
+For the final response, the Worker checks the HTML type, streams and counts decoded bytes to 2 MB, and applies a 10-second wall-clock deadline. It returns sanitized HTML or a typed error only. It uses no credentials, cache, upstream response-header relay, parsing, or persistent application logs.
 
-Follow redirects manually: request with redirects disabled, validate each `Location` against the selected Provider policy, record the initial URL and each accepted hop, then fetch the next hop. Reject before reading or exposing a body when the chain is over its limit or a destination is disallowed. ChatGPT, Claude, and Mistral have zero redirects; Gemini permits one allowlisted redirect.
+## Configuration and tests
 
-Stream and count the decoded response instead of calling `response.text()` unbounded. The Worker limits decoded HTML to 2 MB and total upstream time to 10 seconds. Check Content-Length opportunistically and enforce a counter when it is absent. Use a wall-clock race in addition to `AbortSignal`, because a fetch/body can fail to honor cancellation. On limit breach, cancel the body best-effort and return a typed failure immediately. The Worker performs no extraction or JSON parsing; the client local extractor limits output to three normalized text events.
-
-## Cloudflare notes
-
-- Workers add CORS headers themselves; restrict `Access-Control-Allow-Origin` to exact Calculator origins, return 204 to valid OPTIONS, limit methods, and use `Vary: Origin`.
-- A Worker `fetch()` is appropriate for upstream retrieval. Caching is disabled (TTL 0).
-- Cloudflare rate limiting is eventually consistent and local to an edge location. Apply 10 requests/minute/IP and an approximate 60/hour guard as abuse throttles, not correctness quotas.
-- The Worker targets the Free plan. Its 10 ms CPU budget is compatible with streaming relay behavior because it does not parse HTML server-side.
-- Use only Cloudflare's ephemeral native logs for immediate debugging. Do not attach Analytics Engine, a third-party observability service, or persistent custom IP-and-URL logs. Felix alone accesses the Cloudflare dashboard; native error-rate and request-volume thresholds provide alerting.
-
-Useful primary documentation: [CORS header proxy](https://developers.cloudflare.com/workers/examples/cors-header-proxy/), [Rate Limiting binding](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/), [Workers limits](https://developers.cloudflare.com/workers/platform/limits/), and [cache behavior](https://developers.cloudflare.com/workers/reference/how-the-cache-works/).
-
-## Source decisions retained
-
-- Epic 5 was rejected because corsproxy.io could not attest the final URL or redirect chain and Gemini was therefore refused before traffic.
-- Keep consent at the Calculator boundary, Resolved Share attestation, closed Provider Registry, bounded response processing, local extractors, typed atomic failures, and manual fallback.
-- Fix the retrospective gaps: real Worker redirect tests, surfaced inaccessible-content warnings, valid long-URL tests for Mistral/Gemini, and bounded recursive payload traversal.
+- Separate allowed-origin environment variables: development `http://localhost:5173`; production `https://felixmortas.com`.
+- Versioned in-Worker policy: initial formats are `chatgpt.com/share/<id>`, `claude.ai/share/<id>`, `chat.mistral.ai/chat/<id>`, and `share.gemini.google/<id>`; Gemini's sole redirect target is `gemini.google.com/share/<id>?skid=<uuid>`. The Worker must use the same `<id>` canonicalization as the Calculator adapters.
+- Cloudflare Free plan, native ephemeral logs, and IP throttling at 10/minute and approximately 60/hour.
+- Test with controlled or deployed upstreams: each provider's accepted URL, Gemini's allowed/rejected/excessive redirect cases, other-provider redirect rejection, bounds, no data egress, and atomic errors.
