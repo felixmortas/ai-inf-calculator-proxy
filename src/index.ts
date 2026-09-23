@@ -60,7 +60,7 @@ export default {
       headers.set('Content-Type', 'text/html; charset=utf-8');
       return new Response(new Uint8Array(html).buffer, { status: 200, headers });
     } catch (error) {
-      if (error instanceof RelayError) return errorResponse(error.code, error.status, origin);
+      if (error instanceof RelayError) return errorResponse(error.code, error.status, origin, error.upstreamStatus);
       return errorResponse(controller.signal.aborted ? 'timeout' : 'network', controller.signal.aborted ? 504 : 502, origin);
     } finally { clearTimeout(timeout); }
   },

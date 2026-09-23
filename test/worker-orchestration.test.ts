@@ -85,6 +85,13 @@ describe('worker orchestration is gated and atomic', () => {
     expect(response.headers.get('set-cookie')).toBeNull();
     expect(response.headers.get('cache-control')).toBe('no-store');
   });
+  it('includes only the upstream HTTP status on an HTTP failure', async () => {
+    mocks.relay.mockRejectedValueOnce(new RelayError('http', 502, 403));
+    const response = await worker.fetch(request(), env);
+    expect(response.status).toBe(502);
+    expect(await response.json()).toEqual({ ok: false, error: { code: 'http', upstreamStatus: 403 } });
+    expect(response.headers.get('set-cookie')).toBeNull();
+  });
 
   it('returns sanitized complete HTML after rate limiting', async () => {
     const response = await worker.fetch(request(), env);

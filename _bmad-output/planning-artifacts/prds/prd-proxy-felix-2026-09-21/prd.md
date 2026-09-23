@@ -28,7 +28,7 @@ Replace the third-party import proxy with one self-hosted Cloudflare Worker. The
 
 ### FR-3 — Bounded HTML response
 
-- Return only complete HTML with sanitized headers, or a typed error; never return partial HTML or upstream cookies, challenge headers, or other response headers.
+- Return only complete HTML with sanitized headers, or a typed error; never return partial HTML or upstream cookies, challenge headers, or other response headers. An upstream non-success response produces an `http` error with its numeric `upstreamStatus` only.
 - Enforce a 10-second total deadline, a 2 MiB decoded-byte limit, and no cache. The Worker does not parse or extract conversation content.
 
 ### FR-4 — Abuse controls and operations

@@ -6,6 +6,8 @@ The Worker accepts `POST /v1/import-html` with `{ "shareUrl": string }` from its
 
 The final response must be successful HTML. The Worker reads the entire decoded body within 2 MiB and a 10-second request deadline before exposing it. It returns sanitized headers and no upstream headers. It uses no content parsing, secrets, persistent application logs, or storage.
 
+For an upstream non-success response, the atomic JSON failure is `{ "ok": false, "error": { "code": "http", "upstreamStatus": <numeric status> } }`. It exposes no upstream body, headers, or URL.
+
 ## Configuration and tests
 
 - Local Wrangler development allows `http://localhost:5173`. The deployed Worker allows exact origins `https://felixmortas.com` and `http://localhost:5173`; its `ALLOWED_LOCAL_ORIGIN` setting explicitly enables local Calculator development against the deployed endpoint. CORS responses reflect only a matched configured origin. Other origins receive a typed `origin` error without a CORS grant.

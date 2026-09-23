@@ -6,15 +6,16 @@ export const errorCodes = [
 export type ErrorCode = typeof errorCodes[number];
 
 export class RelayError extends Error {
-  constructor(public readonly code: ErrorCode, public readonly status = 400) {
+  constructor(public readonly code: ErrorCode, public readonly status = 400, public readonly upstreamStatus?: number) {
     super(code);
   }
 }
 
-export function errorResponse(code: ErrorCode, status = 400, origin?: string): Response {
+export function errorResponse(code: ErrorCode, status = 400, origin?: string, upstreamStatus?: number): Response {
   const headers = securityHeaders(origin);
   headers.set('Content-Type', 'application/json; charset=utf-8');
-  return new Response(JSON.stringify({ ok: false, error: { code } }), { status, headers });
+  const error = code === 'http' && upstreamStatus !== undefined ? { code, upstreamStatus } : { code };
+  return new Response(JSON.stringify({ ok: false, error }), { status, headers });
 }
 
 export function securityHeaders(origin?: string): Headers {

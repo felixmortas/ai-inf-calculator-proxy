@@ -17,7 +17,7 @@ export async function relayHtml(rawUrl: string, signal: AbortSignal): Promise<Ui
     if (signal.aborted) throw new RelayError('timeout', 504);
     throw new RelayError('network', 502);
   }
-  if (!response.ok) throw new RelayError('http', 502);
+  if (!response.ok) throw new RelayError('http', 502, response.status);
   if (!isHtml(response.headers.get('Content-Type'))) throw new RelayError('content-type', 502);
   const announced = Number(response.headers.get('Content-Length'));
   if (Number.isFinite(announced) && announced > MAX_HTML_BYTES) throw new RelayError('response-too-large', 502);

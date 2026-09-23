@@ -72,6 +72,10 @@ describe('bounded atomic relay', () => {
     globalThis.fetch = vi.fn().mockResolvedValue(response);
     await expect(relayHtml(start, signal)).rejects.toMatchObject({ code });
   });
+  it('keeps the upstream status when reporting an HTTP failure', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(new Response('blocked', { status: 403 }));
+    await expect(relayHtml(start, signal)).rejects.toMatchObject({ code: 'http', upstreamStatus: 403 });
+  });
 
   it('accepts exactly 2 MiB decoded bytes and rejects an incomplete body', async () => {
     globalThis.fetch = vi.fn().mockResolvedValueOnce(new Response(new Uint8Array(MAX_HTML_BYTES), { headers: { 'Content-Type': 'text/html' } }));
