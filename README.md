@@ -1,15 +1,19 @@
 # Public-share HTML relay
 
-A narrowly scoped Cloudflare Worker for Calculator's public conversation import. It accepts only `POST /v1/import-html` from the configured Calculator origin with JSON `{ "shareUrl", "turnstileToken" }`. It returns complete HTML or `{ "ok": false, "error": { "code" } }`.
+A Cloudflare Worker for Calculator's public conversation import. It accepts `POST /v1/import-html` with JSON `{ "shareUrl": "..." }` from one configured browser Origin. It applies the native rate limit before reading the JSON body and rejects bodies over 4,096 bytes, including streamed bodies without a Content-Length header. It returns complete `text/html` or `{ "ok": false, "error": { "code": "..." } }`. The Worker validates only the initial public share URL against versioned ChatGPT, Claude, Mistral, and Gemini templates. Fetch follows subsequent redirects automatically, including external destinations; runtime redirect failures return an atomic typed error.
 
-The worker accepts only versioned canonical public URLs for ChatGPT, Claude, Mistral, and Gemini. It uses HTTPS GET requests with manual redirects; only one exact Gemini redirect is permitted. It never forwards caller headers, cookies, authorization, Calculator data, or fetch options. It neither parses nor stores response contents.
+The upstream request is a GET with no caller headers, cookies, authorization, credentials, or cache. The Worker never parses or stores conversation content and never forwards upstream headers. The Calculator owns consent, extraction, and manual fallback. Origin limits browser access; it is not authentication for non-browser clients.
 
-## Setup
+## Local development
 
-Copy `.dev.vars.example` to `.dev.vars` and fill the two secrets. Configure a Turnstile widget for the matching hostname. The development environment allows `http://localhost:5173`; production allows `https://felixmortas.com`.
+1. Run `npm install`.
+2. Run `npx wrangler dev --env development`.
+3. Run Calculator at `http://localhost:5173` and POST to `http://localhost:8787/v1/import-html` with `Content-Type: application/json` and `{ "shareUrl": "https://chatgpt.com/share/<canonical-id>" }`.
 
-The worker limits requests to 10 per IP per minute and 60 per hour using an HMAC-derived Durable Object key. It retains no raw IP, target URL, or HTML. A public provider may still observe a visitor's IP/user-agent while serving the public page; Calculator owns the related consent disclosure and manual-paste fallback.
+No `.dev.vars`, Turnstile secret, account service, or remote binding is required. Wrangler simulates the native rate-limit binding locally. The development environment accepts only `http://localhost:5173`. If the local runtime supplies `CF-Connecting-IP`, that value is the rate-limit key; otherwise all local requests share the `local-development` key. Production rejects requests without `CF-Connecting-IP`.
 
-## Verification
+## Production configuration
 
-Run `npm install`, then `npm test`, `npm run typecheck`, `npm run lint`, and `npm run deploy:dry-run`. Before a deployment, run controlled upstream checks for all four initial URL fixtures, the sole Gemini redirect, rejected redirect destinations and second redirects, URL/method/origin/Turnstile/rate limits, timeout, non-HTML, 2 MiB overflow, and absence of forwarded credentials or response headers. `npm run test:deployed` is deliberately opt-in and requires controlled deployed fixtures.
+The default Wrangler environment deploys the existing `proxy-felix` Worker and allows only `https://felixmortas.com`. Its native rate-limit binding permits 10 calls per 60 seconds per `CF-Connecting-IP` in each Cloudflare location. Counters are approximate and ephemeral. The policy enforces a 2,048-character initial URL, a 10-second request deadline, and a 2 MiB decoded HTML body. No persistent IP or URL logs, analytics binding, or cache is configured. Deploying or configuring the external route requires operator approval.
+
+Run `npm test`, `npm run typecheck`, and `npm run deploy:dry-run` before deployment. In restricted local environments, set `XDG_CONFIG_HOME` to a writable directory for Wrangler logs. Run `npm run test:deployed` only when `DEPLOYED_RELAY_URL`, `DEPLOYED_ALLOWED_ORIGIN`, and `DEPLOYED_SHARE_URL` point to a controlled deployed test setup.

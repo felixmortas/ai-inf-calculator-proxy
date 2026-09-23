@@ -2,60 +2,45 @@
 title: MVP PRD — Public-Share HTML Relay
 status: final
 created: 2026-09-21
-updated: 2026-09-21
+updated: 2026-09-23
 ---
 
 # Public-Share HTML Relay
 
 ## Goal
 
-Replace the third-party import proxy with one self-hosted Cloudflare Worker. The Calculator sends a supported public conversation-share URL; the Worker returns the complete final HTML or a typed error. The Worker is an import boundary, never a general-purpose proxy.
-
-## MVP flow
-
-`Calculator → validate supported share URL → bounded Worker fetch → final HTML or typed failure → local provider extractor`
-
-The Calculator keeps consent, local extraction, preview, and all state changes. A failed import changes no Calculator state and manual paste remains available.
+Replace the third-party import proxy with one self-hosted Cloudflare Worker. The Calculator sends a supported public conversation-share URL; the Worker returns complete final HTML or a typed error. The Calculator retains consent, local extraction, preview, state changes, and manual paste fallback.
 
 ## Requirements
 
-### FR-1 — Narrow request boundary
+### FR-1 — Browser request boundary
 
-- Accept requests only from the configured Calculator origin: `http://localhost:5173` in development and `https://felixmortas.com` in production.
-- Expose one retrieval route. Upstream requests are HTTPS GET only.
-- Never forward Calculator data, cookies, authorization, API keys, caller-chosen headers, or caller-chosen fetch options.
-- The Calculator obtains an ephemeral Turnstile token at consent; the Worker verifies it before fetching. Consent is one-use and invalid after cancellation or a relevant URL, identity, policy, or configuration change.
+- Expose only `POST /v1/import-html` with JSON `{ "shareUrl": string }`, plus its CORS preflight.
+- Permit the exact configured Origin: `http://localhost:5173` in development and `https://felixmortas.com` in production. Origin is browser access control, not authentication for non-browser clients.
+- Rate count valid-route JSON requests before reading the body. Reject JSON bodies over 4,096 bytes, including streamed bodies without Content-Length.
+- Never forward Calculator data, caller headers, cookies, authorization, credentials, API keys, or caller-selected fetch options. Upstream requests are GET only.
 
-### FR-2 — Closed share-URL policy
+### FR-2 — Initial public-share URL policy
 
-- Accept only canonical, versioned public-share URL formats for ChatGPT, Claude, Mistral, and Gemini, supplied by the Calculator registry.
-- Reject every other scheme, hostname, port, credential-bearing URL, fragment, unsupported query/path shape, or URL longer than 2,048 characters before fetch.
-- The initial URL fixtures are: ChatGPT `https://chatgpt.com/share/<id>`; Claude `https://claude.ai/share/<id>`; Mistral `https://chat.mistral.ai/chat/<id>`; and Gemini `https://share.gemini.google/<id>`. Here, `<id>` is accepted only according to the Calculator registry's canonicalizer.
+- Accept only canonical, versioned initial share URLs: ChatGPT `https://chatgpt.com/share/<uuid>`, Claude `https://claude.ai/share/<uuid>`, Mistral `https://chat.mistral.ai/chat/<uuid>`, and Gemini `https://share.gemini.google/<12-alphanumeric-id>`.
+- Reject every other initial scheme, host, port, credential-bearing URL, fragment, query, path shape, or initial URL over 2,048 characters before fetch.
+- The Worker validates the initial URL only. Fetch automatically follows all subsequent redirects, including external hosts and multiple hops. There is no application redirect limit or redirect-target validation. Runtime redirect limits and failures cause a typed atomic error.
 
-### FR-3 — Manual, closed redirects
+### FR-3 — Bounded HTML response
 
-- Disable automatic redirects and validate every `Location` before the next request or any body is returned.
-- ChatGPT, Claude, and Mistral permit zero redirects. Gemini permits at most one redirect, exactly to `https://gemini.google.com/share/<id>?skid=<uuid>`; no other query parameter, hostname, path, or second redirect is allowed.
-- A disallowed or excessive redirect fails atomically. The Worker never follows an arbitrary destination, even when the initial URL belongs to an approved provider.
+- Return only complete HTML with sanitized headers, or a typed error; never return partial HTML or upstream cookies, challenge headers, or other response headers.
+- Enforce a 10-second total deadline, a 2 MiB decoded-byte limit, and no cache. The Worker does not parse or extract conversation content.
 
-### FR-4 — Bounded HTML response
+### FR-4 — Abuse controls and operations
 
-- Return only complete HTML with a restricted content type; never return partial HTML or relay upstream cookies/challenge headers.
-- Enforce a 10-second total limit, a 2 MB decoded-byte limit, no cache (TTL 0), and typed failures for policy, network, HTTP, timeout, size, or type errors.
-- The Worker does not parse HTML, JSON, or conversation content. The local extractor accepts at most three normalized text events and warns about inaccessible non-text content.
-
-### FR-5 — Minimal abuse controls and proof
-
-- Apply IP rate limits of 10/minute and approximately 60/hour, plus the origin and Turnstile checks. These controls do not authorize arbitrary URLs.
-- Use Cloudflare Free and native ephemeral logs only; do not store HTML, target URLs, or persistent IP-and-URL records.
-- Test controlled/deployed Worker behavior for all four providers, redirects, limits, no local-data egress, typed atomic failures, and manual fallback.
+- Use Cloudflare's native rate-limit binding for 10 requests per 60 seconds per IP. Its counters are approximate and local to a Cloudflare location.
+- Support local `wrangler dev` without secrets or remote services and Cloudflare Free deployment. Use native ephemeral logs only; do not store HTML, target URLs, or persistent IP records.
+- Test all initial providers, invalid URLs, automatic redirects, CORS and origin rejection, header isolation, rate rejection, size and timeout boundaries, and typed atomic failures.
 
 ## Non-goals
 
-- Arbitrary web, API, file, authenticated, or private-content fetching.
-- Server-side extraction, content storage, analytics, or caching.
-- A promise that an upstream provider cannot process a public shared page. The user-facing disclosure must accurately state that the public share URL, IP/user-agent, and related metadata may be exposed.
+Arbitrary initial URLs, authenticated fetching, server-side extraction, content storage, analytics, caching, and Calculator consent or session logic.
 
 ## Definition of done
 
-All four registry URL policies are present as versioned fixtures. A controlled/deployed Worker returns complete HTML only for compliant requests and rejects every failure without partial HTML or Calculator-state mutation.
+The versioned initial URL fixtures, bounded Worker, native rate limit, local setup, tests, and operator documentation agree with this contract.

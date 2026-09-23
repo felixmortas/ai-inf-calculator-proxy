@@ -1,38 +1,40 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { RateLimiter } from '../src/rate-limit';
+import { describe, expect, it, vi } from 'vitest';
+import { rateLimit } from '../src/rate-limit';
+import type { Env } from '../src/types';
 
-function limiter() {
-  const counters = new Map<number, number>();
-  const sql = {
-    exec(query: string, ...args: number[]) {
-      if (query.startsWith('INSERT')) { const key = args[0]; counters.set(key, (counters.get(key) ?? 0) + 1); return { one: () => ({}) }; }
-      if (query.startsWith('SELECT')) return { one: () => ({ count: counters.get(args[0]) ?? 0 }) };
-      if (query.startsWith('DELETE')) for (const key of counters.keys()) if (key < args[0] || (key >= args[1] && key < args[2])) counters.delete(key);
-      return { one: () => ({}) };
-    },
-  };
-  const setAlarm = vi.fn().mockResolvedValue(undefined);
-  return { object: new RateLimiter({ storage: { sql, setAlarm } } as any), counters, setAlarm };
+function setup(success = true) {
+  const limit = vi.fn().mockResolvedValue({ success });
+  const env = { RATE_LIMITER: { limit } } as unknown as Env;
+  const request = new Request('https://worker.example/v1/import-html', { headers: { 'CF-Connecting-IP': '192.0.2.1' } });
+  return { limit, env, request };
 }
 
-afterEach(() => vi.restoreAllMocks());
-
-describe('Durable Object rate limiter', () => {
-  it('allows ten requests per minute and rejects the eleventh', async () => {
-    vi.spyOn(Date, 'now').mockReturnValue(3_600_000);
-    const { object, setAlarm } = limiter();
-    for (let i = 0; i < 10; i++) expect((await object.fetch()).status).toBe(200);
-    expect(await (await object.fetch()).json()).toEqual({ allowed: false });
-    expect(setAlarm).toHaveBeenCalled();
+describe('native rate limit', () => {
+  it('keys the binding by visitor IP', async () => {
+    const { limit, env, request } = setup();
+    await rateLimit(request, env);
+    expect(limit).toHaveBeenCalledWith({ key: '192.0.2.1' });
   });
-
-  it('enforces the hourly bound across minute buckets and cleans stale state', async () => {
-    const clock = vi.spyOn(Date, 'now');
-    const { object, counters } = limiter();
-    for (let i = 1; i < 60; i++) { clock.mockReturnValue(i * 60_000); expect(await (await object.fetch()).json()).toEqual({ allowed: true }); }
-    clock.mockReturnValue(59 * 60_000);
-    expect(await (await object.fetch()).json()).toEqual({ allowed: true });
-    expect(await (await object.fetch()).json()).toEqual({ allowed: false });
-    expect(counters.size).toBeLessThanOrEqual(4);
+  it('returns a typed failure on exhaustion', async () => {
+    const { env, request } = setup(false);
+    await expect(rateLimit(request, env)).rejects.toMatchObject({ code: 'rate-limit', status: 429 });
+  });
+  it('fails closed without an IP or working binding', async () => {
+    const { env, request, limit } = setup();
+    await expect(rateLimit(new Request(request.url), env)).rejects.toMatchObject({ code: 'rate-limit' });
+    limit.mockRejectedValueOnce(new Error('binding failed'));
+    await expect(rateLimit(request, env)).rejects.toMatchObject({ code: 'configuration' });
+  });
+  it('uses a shared fallback key only in the local development environment', async () => {
+    const { env, request, limit } = setup();
+    const noIp = new Request(request.url);
+    env.ALLOWED_ORIGIN = 'http://localhost:5173';
+    await rateLimit(noIp, env);
+    expect(limit).toHaveBeenCalledWith({ key: 'local-development' });
+    limit.mockClear();
+    await rateLimit(request, env);
+    expect(limit).toHaveBeenCalledWith({ key: '192.0.2.1' });
+    env.ALLOWED_ORIGIN = 'https://felixmortas.com';
+    await expect(rateLimit(noIp, env)).rejects.toMatchObject({ code: 'rate-limit' });
   });
 });

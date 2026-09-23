@@ -1,20 +1,24 @@
-name = "public-share-html-relay"
+name = "proxy-felix"
 main = "src/index.ts"
 compatibility_date = "2026-09-21"
 workers_dev = true
 
 [vars]
 ALLOWED_ORIGIN = "https://felixmortas.com"
-TURNSTILE_EXPECTED_HOSTNAME = "felixmortas.com"
+
+[[ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "1001"
+[ratelimits.simple]
+limit = 10
+period = 60
 
 [env.development.vars]
 ALLOWED_ORIGIN = "http://localhost:5173"
-TURNSTILE_EXPECTED_HOSTNAME = "localhost"
 
-[[durable_objects.bindings]]
+[[env.development.ratelimits]]
 name = "RATE_LIMITER"
-class_name = "RateLimiter"
-
-[[migrations]]
-tag = "v1"
-new_sqlite_classes = ["RateLimiter"]
+namespace_id = "1001"
+[env.development.ratelimits.simple]
+limit = 10
+period = 60

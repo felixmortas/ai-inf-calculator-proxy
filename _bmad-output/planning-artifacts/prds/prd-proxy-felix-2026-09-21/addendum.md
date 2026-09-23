@@ -2,15 +2,14 @@
 
 ## One endpoint, one algorithm
 
-The Worker exposes one Calculator-only endpoint. It validates Origin and the Turnstile token, canonicalizes the supplied share URL against its local versioned policy, then fetches with `redirect: "manual"`.
+The Worker accepts `POST /v1/import-html` with `{ "shareUrl": string }` from its configured browser Origin. It rate counts requests before reading the JSON body, caps the body at 4,096 bytes including unknown-length streams, then validates the initial URL against four versioned canonical templates and calls `fetch` once with GET, `redirect: "follow"`, omitted credentials, no caller headers, and no cache. The runtime may follow multiple redirects to any destination. The Worker does not inspect or restrict redirect hops; runtime failures are mapped to an atomic typed error.
 
-For every redirect response, it resolves `Location` relative to the current URL, canonicalizes it, and checks the selected provider policy before fetching again. ChatGPT, Claude, and Mistral allow no redirect. Gemini allows one exact destination shape: `https://gemini.google.com/share/<id>?skid=<uuid>`. No body is exposed until the final response passes.
-
-For the final response, the Worker checks the HTML type, streams and counts decoded bytes to 2 MB, and applies a 10-second wall-clock deadline. It returns sanitized HTML or a typed error only. It uses no credentials, cache, upstream response-header relay, parsing, or persistent application logs.
+The final response must be successful HTML. The Worker reads the entire decoded body within 2 MiB and a 10-second request deadline before exposing it. It returns sanitized headers and no upstream headers. It uses no content parsing, secrets, persistent application logs, or storage.
 
 ## Configuration and tests
 
-- Separate allowed-origin environment variables: development `http://localhost:5173`; production `https://felixmortas.com`.
-- Versioned in-Worker policy: initial formats are `chatgpt.com/share/<id>`, `claude.ai/share/<id>`, `chat.mistral.ai/chat/<id>`, and `share.gemini.google/<id>`; Gemini's sole redirect target is `gemini.google.com/share/<id>?skid=<uuid>`. The Worker must use the same `<id>` canonicalization as the Calculator adapters.
-- Cloudflare Free plan, native ephemeral logs, and IP throttling at 10/minute and approximately 60/hour.
-- Test with controlled or deployed upstreams: each provider's accepted URL, Gemini's allowed/rejected/excessive redirect cases, other-provider redirect rejection, bounds, no data egress, and atomic errors.
+- Development Origin: `http://localhost:5173`; production Origin: `https://felixmortas.com`.
+- Initial templates: `chatgpt.com/share/<uuid>`, `claude.ai/share/<uuid>`, `chat.mistral.ai/chat/<uuid>`, and `share.gemini.google/<12-alphanumeric-id>`. Initial URL limit: 2,048 characters.
+- Native Cloudflare rate-limit binding: 10 requests per 60 seconds per `CF-Connecting-IP`; counters are approximate and location-local. No Durable Object or Turnstile configuration.
+- Local Wrangler development uses a simulated native binding and needs no `.dev.vars` or remote services. It keys by `CF-Connecting-IP` when present; if the local runtime omits that header, all local requests share the `local-development` key. Production rejects a missing IP header.
+- Controlled tests cover all four templates, automatic redirect behavior, invalid input, CORS, isolation, limits, and atomic errors. An optional deployed smoke check accepts operator-supplied endpoint, Origin, and share URL.

@@ -1,6 +1,6 @@
 export const errorCodes = [
-  'policy', 'origin', 'method', 'turnstile', 'rate-limit', 'timeout', 'network',
-  'http', 'content-type', 'response-too-large', 'redirect-disallowed', 'configuration',
+  'policy', 'origin', 'method', 'rate-limit', 'timeout', 'network',
+  'http', 'content-type', 'response-too-large', 'configuration',
 ] as const;
 
 export type ErrorCode = typeof errorCodes[number];

@@ -1,5 +1,5 @@
 import { RelayError } from './errors';
-import { canonicalizeShareUrl, validateRedirect } from './policy';
+import { canonicalizeShareUrl } from './policy';
 
 export const MAX_HTML_BYTES = 2 * 1024 * 1024;
 
@@ -8,26 +8,20 @@ function isHtml(contentType: string | null): boolean {
 }
 
 export async function relayHtml(rawUrl: string, signal: AbortSignal): Promise<Uint8Array> {
-  let current = canonicalizeShareUrl(rawUrl);
-  for (;;) {
+  const initial = canonicalizeShareUrl(rawUrl);
+  if (signal.aborted) throw new RelayError('timeout', 504);
+  let response: Response;
+  try {
+    response = await fetch(initial.url, { method: 'GET', redirect: 'follow', credentials: 'omit', cache: 'no-store', signal });
+  } catch {
     if (signal.aborted) throw new RelayError('timeout', 504);
-    let response: Response;
-    try {
-      response = await fetch(current.url, { method: 'GET', redirect: 'manual', credentials: 'omit', cache: 'no-store', signal });
-    } catch (error) {
-      if (signal.aborted) throw new RelayError('timeout', 504);
-      throw new RelayError('network', 502);
-    }
-    if (response.status >= 300 && response.status < 400) {
-      current = validateRedirect(current, response.headers.get('Location'));
-      continue;
-    }
-    if (!response.ok) throw new RelayError('http', 502);
-    if (!isHtml(response.headers.get('Content-Type'))) throw new RelayError('content-type', 502);
-    const announced = Number(response.headers.get('Content-Length'));
-    if (Number.isFinite(announced) && announced > MAX_HTML_BYTES) throw new RelayError('response-too-large', 502);
-    return readBounded(response.body, signal);
+    throw new RelayError('network', 502);
   }
+  if (!response.ok) throw new RelayError('http', 502);
+  if (!isHtml(response.headers.get('Content-Type'))) throw new RelayError('content-type', 502);
+  const announced = Number(response.headers.get('Content-Length'));
+  if (Number.isFinite(announced) && announced > MAX_HTML_BYTES) throw new RelayError('response-too-large', 502);
+  return readBounded(response.body, signal);
 }
 
 async function readBounded(body: ReadableStream<Uint8Array> | null, signal: AbortSignal): Promise<Uint8Array> {
@@ -48,7 +42,7 @@ async function readBounded(body: ReadableStream<Uint8Array> | null, signal: Abor
       chunks.push(next.value);
     }
   } catch (error) {
-    await reader.cancel().catch(() => undefined);
+    void reader.cancel().catch(() => undefined);
     if (error instanceof RelayError) throw error;
     if (signal.aborted) throw new RelayError('timeout', 504);
     throw new RelayError('network', 502);

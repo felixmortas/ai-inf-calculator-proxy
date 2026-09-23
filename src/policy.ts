@@ -1,6 +1,6 @@
 import { RelayError } from './errors';
 import { maxUrlLength, providerFixtures } from './policy.fixtures';
-import type { CanonicalUrl, Provider } from './types';
+import type { CanonicalUrl } from './types';
 
 // Canonical RFC 4122 textual UUID; the registry accepts UUID paths only.
 // The public providers issue UUIDs including newer RFC 9562 versions (for
@@ -27,27 +27,10 @@ export function canonicalizeShareUrl(raw: string): CanonicalUrl {
   for (const provider of ['chatgpt', 'claude', 'mistral'] as const) {
     const fixture = providerFixtures[provider];
     const id = url.hostname === fixture.host && url.search === '' ? oneIdPath(url, fixture.pathPrefix, UUID) : undefined;
-    if (id && raw === `https://${fixture.host}${fixture.pathPrefix}${id}`) return { provider, url, id, stage: 'initial' };
+    if (id && raw === `https://${fixture.host}${fixture.pathPrefix}${id}`) return { provider, url, id };
   }
   const gemini = providerFixtures.gemini;
   const id = url.hostname === gemini.host && url.search === '' ? oneIdPath(url, gemini.pathPrefix, GEMINI_ID) : undefined;
-  if (id && raw === `https://${gemini.host}/${id}`) return { provider: 'gemini', url, id, stage: 'initial' };
+  if (id && raw === `https://${gemini.host}/${id}`) return { provider: 'gemini', url, id };
   throw new RelayError('policy');
 }
-
-/** Validates the sole allowed transition, independently of URL resolution/fetch. */
-export function validateRedirect(current: CanonicalUrl, location: string | null): CanonicalUrl {
-  if (current.provider !== 'gemini' || current.stage !== 'initial' || !location) throw new RelayError('redirect-disallowed');
-  let raw: string;
-  try { raw = new URL(location, current.url).toString(); } catch { throw new RelayError('redirect-disallowed'); }
-  const url = parse(raw);
-  const fixture = providerFixtures.geminiRedirect;
-  const id = url.hostname === fixture.host ? oneIdPath(url, fixture.pathPrefix, GEMINI_ID) : undefined;
-  const skid = url.searchParams.get('skid');
-  if (!id || !skid || !UUID.test(skid) || url.search !== `?skid=${skid}` || raw !== `https://${fixture.host}${fixture.pathPrefix}${id}?skid=${skid}`) {
-    throw new RelayError('redirect-disallowed');
-  }
-  return { provider: 'gemini', url, id, stage: 'gemini-redirect' };
-}
-
-export function providerOf(value: CanonicalUrl): Provider { return value.provider; }
