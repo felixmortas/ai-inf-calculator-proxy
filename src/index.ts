@@ -36,7 +36,8 @@ async function readJson(request: Request, deadline: Promise<never>): Promise<Imp
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const origin = request.headers.get('Origin');
-    if (origin !== env.ALLOWED_ORIGIN) return errorResponse('origin', 403);
+    const allowedOrigin = origin !== null && (origin === env.ALLOWED_ORIGIN || origin === env.ALLOWED_LOCAL_ORIGIN);
+    if (!allowedOrigin) return errorResponse('origin', 403);
     const url = new URL(request.url);
     if (request.method === 'OPTIONS' && url.pathname === '/v1/import-html' && !url.search) return preflightResponse(origin);
     if (request.method !== 'POST') return errorResponse('method', 405, origin);

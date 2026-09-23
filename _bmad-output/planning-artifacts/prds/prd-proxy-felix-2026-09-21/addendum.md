@@ -8,7 +8,7 @@ The final response must be successful HTML. The Worker reads the entire decoded 
 
 ## Configuration and tests
 
-- Development Origin: `http://localhost:5173`; production Origin: `https://felixmortas.com`.
+- Local Wrangler development allows `http://localhost:5173`. The deployed Worker allows exact origins `https://felixmortas.com` and `http://localhost:5173`; its `ALLOWED_LOCAL_ORIGIN` setting explicitly enables local Calculator development against the deployed endpoint. CORS responses reflect only a matched configured origin. Other origins receive a typed `origin` error without a CORS grant.
 - Initial templates: `chatgpt.com/share/<uuid>`, `claude.ai/share/<uuid>`, `chat.mistral.ai/chat/<uuid>`, and `share.gemini.google/<12-alphanumeric-id>`. Initial URL limit: 2,048 characters.
 - Native Cloudflare rate-limit binding: 10 requests per 60 seconds per `CF-Connecting-IP`; counters are approximate and location-local. No Durable Object or Turnstile configuration.
 - Deployment migration `v2` deletes the former `RateLimiter` Durable Object namespace and its transient counters, after preserving the deployed `v1` migration history.

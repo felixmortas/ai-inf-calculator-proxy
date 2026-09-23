@@ -16,7 +16,7 @@ Replace the third-party import proxy with one self-hosted Cloudflare Worker. The
 ### FR-1 — Browser request boundary
 
 - Expose only `POST /v1/import-html` with JSON `{ "shareUrl": string }`, plus its CORS preflight.
-- Permit the exact configured Origin: `http://localhost:5173` in development and `https://felixmortas.com` in production. Origin is browser access control, not authentication for non-browser clients.
+- Permit only exact configured origins: `http://localhost:5173` in local development, and both `http://localhost:5173` and `https://felixmortas.com` on the deployed Worker so the local Calculator can call it. Return CORS headers for the matching allowed origin on preflight, HTML, and typed errors. Origin is browser access control, not authentication for non-browser clients.
 - Rate count valid-route JSON requests before reading the body. Reject JSON bodies over 4,096 bytes, including streamed bodies without Content-Length.
 - Never forward Calculator data, caller headers, cookies, authorization, credentials, API keys, or caller-selected fetch options. Upstream requests are GET only.
 

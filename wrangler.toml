@@ -5,6 +5,7 @@ workers_dev = true
 
 [vars]
 ALLOWED_ORIGIN = "https://felixmortas.com"
+ALLOWED_LOCAL_ORIGIN = "http://localhost:5173"
 
 [[ratelimits]]
 name = "RATE_LIMITER"

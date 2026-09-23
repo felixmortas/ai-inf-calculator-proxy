@@ -1,5 +1,6 @@
 export interface Env {
   ALLOWED_ORIGIN: string;
+  ALLOWED_LOCAL_ORIGIN?: string;
   RATE_LIMITER: RateLimit;
 }
 
