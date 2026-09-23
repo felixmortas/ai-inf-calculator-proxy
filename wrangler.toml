@@ -22,3 +22,13 @@ namespace_id = "1001"
 [env.development.ratelimits.simple]
 limit = 10
 period = 60
+
+# Preserve the deployed migration history, then retire the obsolete
+# Durable Object namespace used only for the former rate-limit counters.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RateLimiter"]
+
+[[migrations]]
+tag = "v2"
+deleted_classes = ["RateLimiter"]

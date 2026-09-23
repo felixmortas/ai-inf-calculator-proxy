@@ -16,4 +16,6 @@ No `.dev.vars`, Turnstile secret, account service, or remote binding is required
 
 The default Wrangler environment deploys the existing `proxy-felix` Worker and allows only `https://felixmortas.com`. Its native rate-limit binding permits 10 calls per 60 seconds per `CF-Connecting-IP` in each Cloudflare location. Counters are approximate and ephemeral. The policy enforces a 2,048-character initial URL, a 10-second request deadline, and a 2 MiB decoded HTML body. No persistent IP or URL logs, analytics binding, or cache is configured. Deploying or configuring the external route requires operator approval.
 
+The `v2` migration retires the old `RateLimiter` Durable Object class during deployment. Its former rate-limit counters are deleted; the native binding handles new requests.
+
 Run `npm test`, `npm run typecheck`, and `npm run deploy:dry-run` before deployment. In restricted local environments, set `XDG_CONFIG_HOME` to a writable directory for Wrangler logs. Run `npm run test:deployed` only when `DEPLOYED_RELAY_URL`, `DEPLOYED_ALLOWED_ORIGIN`, and `DEPLOYED_SHARE_URL` point to a controlled deployed test setup.

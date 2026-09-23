@@ -11,5 +11,6 @@ The final response must be successful HTML. The Worker reads the entire decoded 
 - Development Origin: `http://localhost:5173`; production Origin: `https://felixmortas.com`.
 - Initial templates: `chatgpt.com/share/<uuid>`, `claude.ai/share/<uuid>`, `chat.mistral.ai/chat/<uuid>`, and `share.gemini.google/<12-alphanumeric-id>`. Initial URL limit: 2,048 characters.
 - Native Cloudflare rate-limit binding: 10 requests per 60 seconds per `CF-Connecting-IP`; counters are approximate and location-local. No Durable Object or Turnstile configuration.
+- Deployment migration `v2` deletes the former `RateLimiter` Durable Object namespace and its transient counters, after preserving the deployed `v1` migration history.
 - Local Wrangler development uses a simulated native binding and needs no `.dev.vars` or remote services. It keys by `CF-Connecting-IP` when present; if the local runtime omits that header, all local requests share the `local-development` key. Production rejects a missing IP header.
 - Controlled tests cover all four templates, automatic redirect behavior, invalid input, CORS, isolation, limits, and atomic errors. An optional deployed smoke check accepts operator-supplied endpoint, Origin, and share URL.
