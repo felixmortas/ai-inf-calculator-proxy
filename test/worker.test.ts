@@ -3,7 +3,7 @@ import worker from '../src/index';
 
 const limit = vi.fn().mockResolvedValue({ success: true });
 const env = { ALLOWED_ORIGIN: 'https://felixmortas.com', ALLOWED_LOCAL_ORIGIN: 'http://localhost:5173', RATE_LIMITER: { limit } } as any;
-const validUrl = 'https://chatgpt.com/share/123e4567-e89b-42d3-a456-426614174000';
+const validUrl = 'https://claude.ai/share/123e4567-e89b-42d3-a456-426614174000';
 function post(origin = env.ALLOWED_ORIGIN, body: unknown = { shareUrl: validUrl }, path = '/v1/import-html') {
   return new Request(`https://worker.example${path}`, { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json', 'CF-Connecting-IP': '192.0.2.1' }, body: JSON.stringify(body) });
 }

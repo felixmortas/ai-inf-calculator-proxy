@@ -26,10 +26,12 @@ export function canonicalizeShareUrl(raw: string): CanonicalUrl {
   const url = parse(raw);
   for (const provider of ['chatgpt', 'claude', 'mistral'] as const) {
     const fixture = providerFixtures[provider];
+    if (!fixture.enabled) continue;
     const id = url.hostname === fixture.host && url.search === '' ? oneIdPath(url, fixture.pathPrefix, UUID) : undefined;
     if (id && raw === `https://${fixture.host}${fixture.pathPrefix}${id}`) return { provider, url, id };
   }
   const gemini = providerFixtures.gemini;
+  if (!gemini.enabled) throw new RelayError('policy');
   const id = url.hostname === gemini.host && url.search === '' ? oneIdPath(url, gemini.pathPrefix, GEMINI_ID) : undefined;
   if (id && raw === `https://${gemini.host}/${id}`) return { provider: 'gemini', url, id };
   throw new RelayError('policy');

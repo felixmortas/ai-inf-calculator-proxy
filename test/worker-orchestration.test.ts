@@ -8,7 +8,7 @@ vi.mock('../src/relay', () => ({ relayHtml: mocks.relay }));
 const { default: worker } = await import('../src/index');
 
 const env = { ALLOWED_ORIGIN: 'https://felixmortas.com', RATE_LIMITER: { limit: vi.fn() } } as any;
-const url = 'https://chatgpt.com/share/123e4567-e89b-42d3-a456-426614174000';
+const url = 'https://claude.ai/share/123e4567-e89b-42d3-a456-426614174000';
 function request(body: unknown = { shareUrl: url }, origin = env.ALLOWED_ORIGIN): Request {
   return new Request('https://worker.example/v1/import-html', {
     method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json', 'CF-Connecting-IP': '192.0.2.1', Cookie: 'private=1', Authorization: 'Bearer private' }, body: JSON.stringify(body),
@@ -22,6 +22,13 @@ describe('worker orchestration is gated and atomic', () => {
     const response = await worker.fetch(request({ shareUrl: 'https://evil.example/' }), env);
     expect(response.status).toBe(400);
     expect(mocks.limit).toHaveBeenCalledTimes(1); expect(mocks.relay).not.toHaveBeenCalled();
+  });
+
+  it('rejects a canonical ChatGPT URL before fetching upstream', async () => {
+    const response = await worker.fetch(request({ shareUrl: 'https://chatgpt.com/share/123e4567-e89b-42d3-a456-426614174000' }), env);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ ok: false, error: { code: 'policy' } });
+    expect(mocks.relay).not.toHaveBeenCalled();
   });
 
   it('enforces the 4 KiB JSON bound with and without Content-Length', async () => {

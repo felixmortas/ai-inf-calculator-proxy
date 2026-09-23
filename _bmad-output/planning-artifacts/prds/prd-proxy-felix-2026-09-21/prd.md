@@ -22,7 +22,7 @@ Replace the third-party import proxy with one self-hosted Cloudflare Worker. The
 
 ### FR-2 — Initial public-share URL policy
 
-- Accept only canonical, versioned initial share URLs: ChatGPT `https://chatgpt.com/share/<uuid>`, Claude `https://claude.ai/share/<uuid>`, Mistral `https://chat.mistral.ai/chat/<uuid>`, and Gemini `https://share.gemini.google/<12-alphanumeric-id>`.
+- Accept only canonical, versioned initial share URLs: Claude `https://claude.ai/share/<uuid>`, Mistral `https://chat.mistral.ai/chat/<uuid>`, and Gemini `https://share.gemini.google/<12-alphanumeric-id>`. Keep the ChatGPT `https://chatgpt.com/share/<uuid>` template in the versioned policy registry with `enabled: false`; reject ChatGPT input with a typed `policy` error before fetch.
 - Reject every other initial scheme, host, port, credential-bearing URL, fragment, query, path shape, or initial URL over 2,048 characters before fetch.
 - The Worker validates the initial URL only. Fetch automatically follows all subsequent redirects, including external hosts and multiple hops. There is no application redirect limit or redirect-target validation. Runtime redirect limits and failures cause a typed atomic error.
 
@@ -35,7 +35,7 @@ Replace the third-party import proxy with one self-hosted Cloudflare Worker. The
 
 - Use Cloudflare's native rate-limit binding for 10 requests per 60 seconds per IP. Its counters are approximate and local to a Cloudflare location.
 - Support local `wrangler dev` without secrets or remote services and Cloudflare Free deployment. Use native ephemeral logs only; do not store HTML, target URLs, or persistent IP records.
-- Test all initial providers, invalid URLs, automatic redirects, CORS and origin rejection, header isolation, rate rejection, size and timeout boundaries, and typed atomic failures.
+- Test all enabled initial providers, disabled ChatGPT URLs, invalid URLs, automatic redirects, CORS and origin rejection, header isolation, rate rejection, size and timeout boundaries, and typed atomic failures.
 
 ## Non-goals
 

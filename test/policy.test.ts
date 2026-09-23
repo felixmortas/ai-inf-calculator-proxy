@@ -6,12 +6,15 @@ const uuid = '123e4567-e89b-42d3-a456-426614174000';
 
 describe('closed initial URL policy', () => {
   it.each([
-    [`https://chatgpt.com/share/${uuid}`, 'chatgpt'],
-    ['https://chatgpt.com/share/6ab14133-ee34-83eb-ab08-d581e785bdbb', 'chatgpt'],
     [`https://claude.ai/share/${uuid}`, 'claude'],
     [`https://chat.mistral.ai/chat/${uuid}`, 'mistral'],
     ['https://share.gemini.google/AbcD1234EfGh', 'gemini'],
   ])('accepts canonical %s', (url, provider) => expect(canonicalizeShareUrl(url).provider).toBe(provider));
+
+  it.each([
+    `https://chatgpt.com/share/${uuid}`,
+    'https://chatgpt.com/share/6ab14133-ee34-83eb-ab08-d581e785bdbb',
+  ])('rejects disabled ChatGPT URL %s', url => expect(() => canonicalizeShareUrl(url)).toThrow('policy'));
 
   it.each([
     `http://chatgpt.com/share/${uuid}`, `https://chatgpt.com:443/share/${uuid}`,

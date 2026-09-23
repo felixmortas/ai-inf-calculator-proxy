@@ -3,7 +3,7 @@ import { relayHtml, MAX_HTML_BYTES } from '../src/relay';
 import { fetch as undiciFetch, getGlobalDispatcher, MockAgent, setGlobalDispatcher } from 'undici';
 
 const uuid = '123e4567-e89b-42d3-a456-426614174000';
-const start = `https://chatgpt.com/share/${uuid}`;
+const start = `https://claude.ai/share/${uuid}`;
 const originalFetch = globalThis.fetch;
 const signal = new AbortController().signal;
 
@@ -31,7 +31,7 @@ describe('bounded atomic relay', () => {
       expect(value).not.toContain('private=1');
       expect(value).not.toContain('bearer private');
     };
-    agent.get('https://chatgpt.com').intercept({ path: `/share/${uuid}`, method: 'GET' }).reply(options => {
+    agent.get('https://claude.ai').intercept({ path: `/share/${uuid}`, method: 'GET' }).reply(options => {
       noCallerHeaders(options.headers);
       return { statusCode: 302, data: '', responseOptions: { headers: { Location: 'https://external.example/step' } } };
     });

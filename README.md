@@ -1,6 +1,6 @@
 # Public-share HTML relay
 
-A Cloudflare Worker for Calculator's public conversation import. It accepts `POST /v1/import-html` with JSON `{ "shareUrl": "..." }` from an explicitly configured browser Origin. It applies the native rate limit before reading the JSON body and rejects bodies over 4,096 bytes, including streamed bodies without a Content-Length header. It returns complete `text/html` or `{ "ok": false, "error": { "code": "..." } }`. The Worker validates only the initial public share URL against versioned ChatGPT, Claude, Mistral, and Gemini templates. Fetch follows subsequent redirects automatically, including external destinations; runtime redirect failures return an atomic typed error.
+A Cloudflare Worker for Calculator's public conversation import. It accepts `POST /v1/import-html` with JSON `{ "shareUrl": "..." }` from an explicitly configured browser Origin. It applies the native rate limit before reading the JSON body and rejects bodies over 4,096 bytes, including streamed bodies without a Content-Length header. It returns complete `text/html` or `{ "ok": false, "error": { "code": "..." } }`. The Worker accepts versioned Claude, Mistral, and Gemini initial share URL templates. The ChatGPT template remains in the policy registry but is disabled; ChatGPT input returns a typed `policy` error before fetch. Fetch follows subsequent redirects automatically, including external destinations; runtime redirect failures return an atomic typed error.
 
 The upstream request is a GET with no caller headers, cookies, authorization, credentials, or cache. The Worker never parses or stores conversation content and never forwards upstream headers. An `http` error includes only the numeric `upstreamStatus` for diagnosis. The Calculator owns consent, extraction, and manual fallback. Origin limits browser access; it is not authentication for non-browser clients.
 
@@ -8,7 +8,7 @@ The upstream request is a GET with no caller headers, cookies, authorization, cr
 
 1. Run `npm install`.
 2. Run `npx wrangler dev --env development`.
-3. Run Calculator at `http://localhost:5173` and POST to `http://localhost:8787/v1/import-html` with `Content-Type: application/json` and `{ "shareUrl": "https://chatgpt.com/share/<canonical-id>" }`.
+3. Run Calculator at `http://localhost:5173` and POST to `http://localhost:8787/v1/import-html` with `Content-Type: application/json` and `{ "shareUrl": "https://claude.ai/share/<canonical-uuid>" }`.
 
 No `.dev.vars`, Turnstile secret, account service, or remote binding is required. Wrangler simulates the native rate-limit binding locally. The development environment accepts only `http://localhost:5173`. If the local runtime supplies `CF-Connecting-IP`, that value is the rate-limit key; otherwise all local requests share the `local-development` key. Production rejects requests without `CF-Connecting-IP`.
 
