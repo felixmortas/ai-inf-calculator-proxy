@@ -9,6 +9,7 @@ describe('recorded native rate limit', () => {
     expect(config).toMatch(/\[\[env\.development\.ratelimits\]\][\s\S]*?\[env\.development\.ratelimits\.simple\]\s*limit = 10\s*period = 60/);
   });
   it('retires the previously deployed Durable Object class', () => {
+    expect(config).toMatch(/\[durable_objects\]\s*bindings = \[\]/);
     expect(config).toMatch(/\[\[migrations\]\]\s*tag = "v1"\s*new_sqlite_classes = \["RateLimiter"\]/);
     expect(config).toMatch(/\[\[migrations\]\]\s*tag = "v2"\s*deleted_classes = \["RateLimiter"\]/);
   });

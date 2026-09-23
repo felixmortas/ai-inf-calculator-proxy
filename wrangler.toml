@@ -23,6 +23,10 @@ namespace_id = "1001"
 limit = 10
 period = 60
 
+# Explicitly clear the binding retained by the previously deployed Worker.
+[durable_objects]
+bindings = []
+
 # Preserve the deployed migration history, then retire the obsolete
 # Durable Object namespace used only for the former rate-limit counters.
 [[migrations]]
