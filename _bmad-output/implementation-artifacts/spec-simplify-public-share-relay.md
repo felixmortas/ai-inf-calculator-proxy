@@ -6,8 +6,8 @@ status: 'done'
 baseline_commit: 'ebb3d824e310270c7af560315313dcc56a4ec456'
 review_loop_iteration: 0
 context:
-  - '_bmad-output/planning-artifacts/prds/prd-proxy-felix-2026-09-21/prd.md'
-  - '_bmad-output/planning-artifacts/prds/prd-proxy-felix-2026-09-21/addendum.md'
+  - '_bmad-output/planning-artifacts/prds/prd-ai-inf-calculator-proxy-2026-09-21/prd.md'
+  - '_bmad-output/planning-artifacts/prds/prd-ai-inf-calculator-proxy-2026-09-21/addendum.md'
 ---
 
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
@@ -45,7 +45,7 @@ context:
 - `src/rate-limit.ts`, `src/turnstile.ts`, `src/types.ts`, `src/errors.ts` -- replace Durable Object rate-limit code, remove Turnstile and secret types, retain typed errors.
 - `wrangler.toml`, `.dev.vars.example`, `README.md` -- align Worker name/origins, native rate-limit binding, and local/production setup; remove secret setup.
 - `test/*.test.ts`, `test/deployed.mjs` -- update request contract and cover all four templates, redirects, bounds, origin rejection, header isolation, and local behavior.
-- `_bmad-output/planning-artifacts/prds/prd-proxy-felix-2026-09-21/{prd.md,addendum.md}` -- record revised interface, unrestricted redirects, rate limit, and removal of Turnstile/Durable Object.
+- `_bmad-output/planning-artifacts/prds/prd-ai-inf-calculator-proxy-2026-09-21/{prd.md,addendum.md}` -- record revised interface, unrestricted redirects, rate limit, and removal of Turnstile/Durable Object.
 
 ## Tasks & Acceptance
 
@@ -55,7 +55,7 @@ context:
 - [x] `src/index.ts`, `src/rate-limit.ts`, `src/types.ts`, `src/errors.ts` -- simplify browser contract and use a native per-IP limit; delete unused Turnstile code.
 - [x] `wrangler.toml`, `.dev.vars.example`, `README.md` -- make local development and deployment configuration explicit without secrets.
 - [x] `test/*.test.ts`, `test/deployed.mjs` -- verify the matrix and security boundaries with meaningful controlled upstream tests.
-- [x] `_bmad-output/planning-artifacts/prds/prd-proxy-felix-2026-09-21/{prd.md,addendum.md}` -- record changed requirements and decisions.
+- [x] `_bmad-output/planning-artifacts/prds/prd-ai-inf-calculator-proxy-2026-09-21/{prd.md,addendum.md}` -- record changed requirements and decisions.
 
 **Acceptance Criteria:**
 

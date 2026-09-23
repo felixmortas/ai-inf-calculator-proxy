@@ -13,4 +13,4 @@ The change removes client-supplied policy material, response redirect-chain atte
 
 Redirects are not opened globally. Each hop is manually validated: ChatGPT, Claude, and Mistral permit zero redirects; Gemini permits one destination only: `https://gemini.google.com/share/<id>?skid=<uuid>`. Initial formats are recorded in the PRD and must be versioned in Worker fixtures.
 
-Updated artifacts: `prd.md`, `addendum.md`, `reconcile-context.md`, and `review-rubric.md` in `prds/prd-proxy-felix-2026-09-21/`.
+Updated artifacts: `prd.md`, `addendum.md`, `reconcile-context.md`, and `review-rubric.md` in `prds/prd-ai-inf-calculator-proxy-2026-09-21/`.

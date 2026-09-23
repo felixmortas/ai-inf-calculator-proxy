@@ -6,8 +6,8 @@ status: 'in-progress'
 baseline_commit: 'c23365b80d7d98059375d69f59ee4e2ddb97c78d'
 review_loop_iteration: 0
 context:
-  - '_bmad-output/planning-artifacts/prds/prd-proxy-felix-2026-09-21/prd.md'
-  - '_bmad-output/planning-artifacts/prds/prd-proxy-felix-2026-09-21/addendum.md'
+  - '_bmad-output/planning-artifacts/prds/prd-ai-inf-calculator-proxy-2026-09-21/prd.md'
+  - '_bmad-output/planning-artifacts/prds/prd-ai-inf-calculator-proxy-2026-09-21/addendum.md'
 ---
 
 <frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
